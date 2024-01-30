@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ejemplo</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/estilo.css') }}">
+</head>
+<body>
+    <h1>ejemplo</h1>
+    <p>Esto es un ejemplo</p>
+    <p>Hola {{ nombre }}</p>
+
+    <div class="lista" >
+        {% for i in lista %}
+        {% if i.visible %}
+            <p>Item visible {{ i.num }}</p>
+        {% endif %}
+    {% endfor %}
+    </div>
+</body>
+</html>
