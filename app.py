@@ -28,6 +28,7 @@ class PostUser(db.Model):
     content = db.Column(db.Text, nullable=False)
     date_posted = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    user = db.relationship("User", backref="posts")
 
     def __repr__(self):
         return f"Post('{self.title}', '{self.date_posted}')"
@@ -35,13 +36,18 @@ class PostUser(db.Model):
 
 # Llaves primarias compuestas
 
-# class MessageUser(db.Model):
-#     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), primary_key=True)
-#     id = db.Column(db.Integer, db.ForeignKey("message.id"), primary_key=True)
-#     user = db.relationship("User", backref="message_user")
-#     message = db.relationship("Message", backref="message_user")
+class Comment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    content = db.Column(db.Text, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    post_id = db.Column(db.Integer, db.ForeignKey("post_user.id"), nullable=False)
+    user = db.relationship("User", backref="comments")
+    post = db.relationship("PostUser", backref="comments")
 
-# Creación de tablas
+    def __repr__(self):
+        return f"Comment('{self.content}', '{self.user_id}', '{self.post_id}')"
+
+#Creación de tablas
 
 with app.app_context():
     db.create_all()
@@ -120,6 +126,82 @@ def obtener_usuarios():
     print(users)
 
     return jsonify([{"username": user.username, "email": user.email, "name": user.name} for user in users])
+
+
+
+@app.route("/crear_post", methods=["POST"])
+def crear_post():
+    body = request.json
+    print(body)
+    if body:
+        title = body["title"]
+        content = body["content"]
+        user_id = body["user_id"]
+
+        user = User.query.get(user_id)
+
+        if user: 
+            # Creamos el objeto user
+            post = PostUser(title=title, content=content, user_id=user_id)
+
+            # Agregamos el objeto a la base de datos
+            db.session.add(post)
+
+            # Guardamos los cambios
+            db.session.commit()
+
+            return jsonify({"message": "Post creado"}), 201
+        else:
+            return jsonify({"message": "Usuario no existe"}), 400
+    
+    else:
+        return jsonify({"message": "No se enviaron datos"}), 400
+
+
+
+@app.route("/create_comment", methods=["POST"])
+def create_comment():
+    body = request.json
+    print(body)
+    if body:
+        content = body["content"]
+        user_id = body["user_id"]
+        post_id = body["post_id"]
+
+        user = User.query.get(user_id)
+        post = PostUser.query.get(post_id)
+
+        if user and post: 
+            # Creamos el objeto user
+            comment = Comment(content=content, user_id=user_id, post_id=post_id)
+
+            # Agregamos el objeto a la base de datos
+            db.session.add(comment)
+
+            # Guardamos los cambios
+            db.session.commit()
+
+            return jsonify({"message": "Comentario creado"}), 201
+        else:
+            return jsonify({"message": "Usuario o post no existe"}), 400
+    
+    else:
+        return jsonify({"message": "No se enviaron datos"}), 400
+
+
+@app.route("/modificar_usuario/<int:id>", methods=["PUT"])
+def modificar_usuario(id):
+    body = request.json
+    user = User.query.get(id)
+
+    if user:
+        for key, value in body.items():
+            setattr(user, key, value)
+        
+        db.session.commit()
+        return jsonify({"message": "Usuario modificado"}), 200
+    else:
+        return jsonify({"message": "Usuario no existe"}), 400
 
 
 
